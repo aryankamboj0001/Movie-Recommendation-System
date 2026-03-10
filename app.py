@@ -14,35 +14,28 @@ st.set_page_config(page_title="Movie Recommender", page_icon="🎬", layout="wid
 # =============================
 st.markdown("""
 <style>
-
 .small-muted{
 color:#6b7280;
 font-size:0.9rem;
 }
-
 .movie-title{
 font-size:0.9rem;
 font-weight:600;
 }
-
 .movie-card{
 transition: transform 0.2s ease;
 }
-
 .movie-card:hover{
 transform: scale(1.05);
 }
-
 .hero-img img{
 height:200px;
 object-fit:cover;
 border-radius:10px;
 }
-
 img{
 border-radius:10px;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,7 +64,6 @@ grid_cols = 5
 # API CALL
 # =============================
 def api_get_json(path, params=None):
-
     try:
         r = requests.get(
             f"{API_BASE}{path}",
@@ -95,12 +87,10 @@ def api_get_json(path, params=None):
         st.write(e)
         return None
 
-
 # =============================
-# POSTER GRID
+# POSTER GRID - FIXED VERSION
 # =============================
 def poster_grid(cards, cols=5):
-
     if not cards:
         st.warning("No movies found")
         return
@@ -109,11 +99,9 @@ def poster_grid(cards, cols=5):
     idx = 0
 
     for r in range(rows):
-
         columns = st.columns(cols)
 
         for c in range(cols):
-
             if idx >= len(cards):
                 break
 
@@ -129,9 +117,9 @@ def poster_grid(cards, cols=5):
             year = release[:4] if release else ""
 
             with columns[c]:
-
                 if poster:
-                    st.image(poster, width="stretch")
+                    # ✅ FIXED: Use integer width instead of "stretch"
+                    st.image(poster, width=250, use_column_width=False)
 
                 st.markdown(
                     f"""
@@ -144,11 +132,9 @@ def poster_grid(cards, cols=5):
                 )
 
                 if st.button("Open", key=f"{tmdb_id}_{idx}"):
-
                     st.session_state.view = "details"
                     st.session_state.selected_tmdb_id = tmdb_id
                     st.rerun()
-
 
 # =============================
 # HERO BANNER
@@ -164,87 +150,71 @@ unsafe_allow_html=True
 
 st.title("🎬 Movie Recommender")
 
-
 # =============================
 # HOME PAGE
 # =============================
 if st.session_state.view == "home":
-
     search = st.text_input(
         "Search movie",
         placeholder="Batman, Avengers, Love..."
     )
 
     if search:
-
         st.caption(f"Results for **{search}**")
 
         with st.spinner("Searching movies..."):
-
             data = api_get_json(
                 "/tmdb/search",
                 {"query": search}
             )
 
         if data:
-
             results = data.get("results", [])
 
             cards = []
-
             for m in results:
-
                 cards.append({
-
                     "tmdb_id": m.get("tmdb_id") or m.get("id"),
                     "title": m.get("title"),
                     "poster_url": TMDB_IMG + m["poster_path"] if m.get("poster_path") else None,
                     "vote_average": m.get("vote_average"),
                     "release_date": m.get("release_date")
-
                 })
 
             poster_grid(cards, grid_cols)
 
     else:
-
         st.subheader("🔥 Trending Movies")
 
         with st.spinner("Loading movies..."):
-
             home = api_get_json("/home")
 
         if home:
-
             poster_grid(home, grid_cols)
 
-
 # =============================
-# DETAILS PAGE
+# DETAILS PAGE - FIXED VERSION
 # =============================
 elif st.session_state.view == "details":
-
     tmdb_id = st.session_state.selected_tmdb_id
 
     if st.button("⬅ Back"):
-
         st.session_state.view = "home"
         st.rerun()
 
     with st.spinner("Loading movie details..."):
-
         movie = api_get_json(
             f"/movie/id/{tmdb_id}"
         )
 
     if movie:
-
         st.header(movie.get("title"))
 
         poster = movie.get("poster_url")
 
         if poster:
-            st.image(poster, width="stretch")
+            # ✅ FIXED: Use integer width instead of "stretch"
+            st.image(poster, width=400, use_column_width=False)
 
         st.write(movie.get("overview"))
 
@@ -258,5 +228,4 @@ elif st.session_state.view == "details":
         )
 
         if rec:
-
             poster_grid(rec, grid_cols)
