@@ -1,95 +1,263 @@
+import requests
 import streamlit as st
-import pickle
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
 
-# Page config
-st.set_page_config(
-    page_title="Movie Recommender",
-    page_icon="🎬",
-    layout="wide"
-)
+# =============================
+# CONFIG
+# =============================
+API_BASE = "https://movie-rec-466x.onrender.com"
+TMDB_IMG = "https://image.tmdb.org/t/p/w500"
 
-# Load data
-@st.cache_data
-def load_data():
-    movies = pd.read_pickle("movies_df.pkl")
-    tfidf_matrix = pickle.load(open("tfidf_matrix.pkl","rb"))
-    indices = pickle.load(open("indices.pkl","rb"))
-    return movies, tfidf_matrix, indices
+st.set_page_config(page_title="Movie Recommender", page_icon="🎬", layout="wide")
 
-movies, tfidf_matrix, indices = load_data()
+# =============================
+# CSS
+# =============================
+st.markdown("""
+<style>
 
-# Recommend function
-def recommend(movie):
+.small-muted{
+color:#6b7280;
+font-size:0.9rem;
+}
 
-    idx = indices[movie]
+.movie-title{
+font-size:0.9rem;
+font-weight:600;
+}
 
-    sim_scores = cosine_similarity(
-        tfidf_matrix[idx],
-        tfidf_matrix
-    ).flatten()
+.movie-card{
+transition: transform 0.2s ease;
+}
 
-    sim_scores = list(enumerate(sim_scores))
+.movie-card:hover{
+transform: scale(1.05);
+}
 
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:11]
+.hero-img img{
+height:200px;
+object-fit:cover;
+border-radius:10px;
+}
 
-    movie_indices = [i[0] for i in sim_scores]
+img{
+border-radius:10px;
+}
 
-    return movies['title'].iloc[movie_indices]
+</style>
+""", unsafe_allow_html=True)
+
+# =============================
+# SESSION STATE
+# =============================
+if "view" not in st.session_state:
+    st.session_state.view = "home"
+
+if "selected_tmdb_id" not in st.session_state:
+    st.session_state.selected_tmdb_id = None
+
+# =============================
+# TOP NAVBAR
+# =============================
+nav1, nav2 = st.columns([1,6])
+
+with nav1:
+    if st.button("🏠 Home"):
+        st.session_state.view = "home"
+        st.rerun()
+
+# show 5 posters per row
+grid_cols = 5
 
 
-# ---------- UI ----------
+# =============================
+# API CALL
+# =============================
+def api_get_json(path, params=None):
 
+    try:
+
+        r = requests.get(
+            f"{API_BASE}{path}",
+            params=params,
+            timeout=20
+        )
+
+        if r.status_code != 200:
+            st.error("API Error")
+            return None
+
+        return r.json()
+
+    except Exception as e:
+
+        st.error("Request Failed")
+        st.write(e)
+
+        return None
+
+
+# =============================
+# POSTER GRID
+# =============================
+def poster_grid(cards, cols=5):
+
+    if not cards:
+        st.warning("No movies found")
+        return
+
+    rows = (len(cards) + cols - 1) // cols
+    idx = 0
+
+    for r in range(rows):
+
+        columns = st.columns(cols)
+
+        for c in range(cols):
+
+            if idx >= len(cards):
+                break
+
+            movie = cards[idx]
+            idx += 1
+
+            poster = movie.get("poster_url")
+            title = movie.get("title")
+            tmdb_id = movie.get("tmdb_id")
+            rating = movie.get("vote_average")
+            release = movie.get("release_date")
+
+            year = release[:4] if release else ""
+
+            with columns[c]:
+
+                if poster:
+                    st.image(poster, use_container_width=True)
+
+                st.markdown(
+                    f"""
+                    <div class="movie-card">
+                    <div class="movie-title">{title}</div>
+                    ⭐ {rating} | {year}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if st.button("Open", key=f"{tmdb_id}_{idx}"):
+
+                    st.session_state.view = "details"
+                    st.session_state.selected_tmdb_id = tmdb_id
+                    st.rerun()
+
+
+# =============================
+# HERO BANNER
+# =============================
 st.markdown(
-"""
-<h1 style='text-align:center; font-size:50px;'>
-🎬 Movie Recommender
-</h1>
-<p style='text-align:center; font-size:20px; color:gray;'>
-Discover movies similar to your favorites
-</p>
+f"""
+<div class="hero-img">
+<img src="https://image.tmdb.org/t/p/original/9BBTo63ANSmhC4e6r62OJFuK2GL.jpg" width="100%">
+</div>
 """,
 unsafe_allow_html=True
 )
 
-st.write("")
-st.write("")
+st.title("🎬 Movie Recommender")
 
-movie_list = movies['title'].values
 
-selected_movie = st.selectbox(
-    "Search Movie",
-    movie_list,
-    index=None,
-    placeholder="Type movie name..."
-)
+# =============================
+# HOME PAGE
+# =============================
+if st.session_state.view == "home":
 
-st.write("")
+    search = st.text_input(
+        "Search movie",
+        placeholder="Batman, Avengers, Love..."
+    )
 
-if st.button("🎥 Show Recommendations"):
+    if search:
 
-    recommendations = recommend(selected_movie)
+        st.caption(f"Results for **{search}**")
 
-    st.markdown("## 🍿 Recommended Movies")
+        with st.spinner("Searching movies..."):
 
-    cols = st.columns(5)
-
-    for i in range(10):
-
-        with cols[i % 5]:
-
-            st.markdown(
-                f"""
-                <div style="
-                padding:15px;
-                border-radius:10px;
-                background:#111;
-                text-align:center;
-                font-size:16px;
-                ">
-                ⭐ {recommendations.iloc[i]}
-                </div>
-                """,
-                unsafe_allow_html=True
+            data = api_get_json(
+                "/tmdb/search",
+                {"query": search}
             )
+
+        if data:
+
+            if isinstance(data, dict):
+                data = data.get("results", [])
+
+            cards = []
+
+            for m in data:
+
+                cards.append({
+
+                    "tmdb_id": m.get("tmdb_id") or m.get("id"),
+                    "title": m.get("title"),
+                    "poster_url": m.get("poster_url"),
+                    "vote_average": m.get("vote_average"),
+                    "release_date": m.get("release_date")
+
+                })
+
+            poster_grid(cards, grid_cols)
+
+    else:
+
+        st.subheader("🔥 Trending Movies")
+
+        with st.spinner("Loading movies..."):
+
+            home = api_get_json("/home")
+
+        if home:
+
+            poster_grid(home, grid_cols)
+
+
+# =============================
+# DETAILS PAGE
+# =============================
+elif st.session_state.view == "details":
+
+    tmdb_id = st.session_state.selected_tmdb_id
+
+    if st.button("⬅ Back"):
+
+        st.session_state.view = "home"
+        st.rerun()
+
+    with st.spinner("Loading movie details..."):
+
+        movie = api_get_json(
+            f"/movie/id/{tmdb_id}"
+        )
+
+    if movie:
+
+        st.header(movie.get("title"))
+
+        poster = movie.get("poster_url")
+
+        if poster:
+            st.image(poster)
+
+        st.write(movie.get("overview"))
+
+        st.divider()
+
+        st.subheader("🎯 Recommendations")
+
+        rec = api_get_json(
+            "/recommend/genre",
+            {"tmdb_id": tmdb_id}
+        )
+
+        if rec:
+
+            poster_grid(rec, grid_cols)
