@@ -56,7 +56,7 @@ if "selected_tmdb_id" not in st.session_state:
     st.session_state.selected_tmdb_id = None
 
 # =============================
-# TOP NAVBAR
+# NAVBAR
 # =============================
 nav1, nav2 = st.columns([1,6])
 
@@ -65,9 +65,7 @@ with nav1:
         st.session_state.view = "home"
         st.rerun()
 
-# show 5 posters per row
 grid_cols = 5
-
 
 # =============================
 # API CALL
@@ -75,7 +73,6 @@ grid_cols = 5
 def api_get_json(path, params=None):
 
     try:
-
         r = requests.get(
             f"{API_BASE}{path}",
             params=params,
@@ -83,16 +80,19 @@ def api_get_json(path, params=None):
         )
 
         if r.status_code != 200:
-            st.error("API Error")
+            st.error(f"API Error {r.status_code}")
+            st.text(r.text)
+            return None
+
+        if not r.text.strip():
+            st.error("Empty API response")
             return None
 
         return r.json()
 
     except Exception as e:
-
         st.error("Request Failed")
         st.write(e)
-
         return None
 
 
@@ -131,7 +131,7 @@ def poster_grid(cards, cols=5):
             with columns[c]:
 
                 if poster:
-                    st.image(poster, use_container_width=True)
+                    st.image(poster, width="stretch")
 
                 st.markdown(
                     f"""
@@ -154,7 +154,7 @@ def poster_grid(cards, cols=5):
 # HERO BANNER
 # =============================
 st.markdown(
-f"""
+"""
 <div class="hero-img">
 <img src="https://image.tmdb.org/t/p/original/9BBTo63ANSmhC4e6r62OJFuK2GL.jpg" width="100%">
 </div>
@@ -188,18 +188,17 @@ if st.session_state.view == "home":
 
         if data:
 
-            if isinstance(data, dict):
-                data = data.get("results", [])
+            results = data.get("results", [])
 
             cards = []
 
-            for m in data:
+            for m in results:
 
                 cards.append({
 
                     "tmdb_id": m.get("tmdb_id") or m.get("id"),
                     "title": m.get("title"),
-                    "poster_url": m.get("poster_url"),
+                    "poster_url": TMDB_IMG + m["poster_path"] if m.get("poster_path") else None,
                     "vote_average": m.get("vote_average"),
                     "release_date": m.get("release_date")
 
@@ -245,7 +244,7 @@ elif st.session_state.view == "details":
         poster = movie.get("poster_url")
 
         if poster:
-            st.image(poster)
+            st.image(poster, width="stretch")
 
         st.write(movie.get("overview"))
 
