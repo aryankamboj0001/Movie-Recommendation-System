@@ -118,8 +118,8 @@ def poster_grid(cards, cols=5):
 
             with columns[c]:
                 if poster:
-                    # ✅ FIXED: Use integer width instead of "stretch"
-                    st.image(poster, width=250, use_column_width=False)
+                    # ✅ FIXED: Removed deprecated use_column_width
+                    st.image(poster, width=250)
 
                 st.markdown(
                     f"""
@@ -213,8 +213,8 @@ elif st.session_state.view == "details":
         poster = movie.get("poster_url")
 
         if poster:
-            # ✅ FIXED: Use integer width instead of "stretch"
-            st.image(poster, width=400, use_column_width=False)
+            # ✅ FIXED: Removed deprecated use_column_width
+            st.image(poster, width=400)
 
         st.write(movie.get("overview"))
 
