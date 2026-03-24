@@ -89,24 +89,39 @@ def api_get_json(path, params=None):
         return None
 
 # =============================
-# POSTER GRID - FIXED VERSION
+# POSTER GRID
 # =============================
 def poster_grid(cards, cols=5):
     if not cards:
         st.warning("No movies found")
         return
 
-    rows = (len(cards) + cols - 1) // cols
+    # FIX 1: normalize both dict and pydantic-style objects
+    normalized = []
+    for m in cards:
+        if isinstance(m, dict):
+            normalized.append({
+                "tmdb_id": m.get("tmdb_id") or m.get("id"),
+                "title": m.get("title"),
+                # FIX 2: backend returns poster_url (not poster_path) for TMDBMovieCard
+                "poster_url": m.get("poster_url") or (TMDB_IMG + m["poster_path"] if m.get("poster_path") else None),
+                "vote_average": m.get("vote_average"),
+                "release_date": m.get("release_date"),
+            })
+        else:
+            normalized.append(m)
+
+    rows = (len(normalized) + cols - 1) // cols
     idx = 0
 
     for r in range(rows):
         columns = st.columns(cols)
 
         for c in range(cols):
-            if idx >= len(cards):
+            if idx >= len(normalized):
                 break
 
-            movie = cards[idx]
+            movie = normalized[idx]
             idx += 1
 
             poster = movie.get("poster_url")
@@ -119,7 +134,6 @@ def poster_grid(cards, cols=5):
 
             with columns[c]:
                 if poster:
-                    # ✅ FIXED: Removed deprecated use_column_width
                     st.image(poster, width=250)
 
                 st.markdown(
@@ -194,7 +208,7 @@ if st.session_state.view == "home":
             poster_grid(home, grid_cols)
 
 # =============================
-# DETAILS PAGE - FINAL FIXED
+# DETAILS PAGE
 # =============================
 elif st.session_state.view == "details":
     tmdb_id = st.session_state.selected_tmdb_id
@@ -205,9 +219,6 @@ elif st.session_state.view == "details":
 
     with st.spinner("Loading movie details..."):
         movie = api_get_json(f"/movie/id/{tmdb_id}")
-
-    # 🔥 DEBUG (optional - remove later)
-    # st.write(movie)
 
     if movie:
         st.header(movie.get("title"))
@@ -225,13 +236,17 @@ elif st.session_state.view == "details":
 
             st.markdown("---")
 
-            # 🎬 TRAILER SECTION (FINAL FIX)
             trailer_url = movie.get("trailer_url")
 
             st.subheader("🎬 Trailer")
 
             if trailer_url:
-                st.video(trailer_url)   # ✅ ALWAYS SHOW VIDEO
+                # FIX 3: st.video() doesn't support embed URLs, use iframe instead
+                st.markdown(
+                    f'<iframe width="100%" height="315" src="{trailer_url}" '
+                    f'frameborder="0" allowfullscreen></iframe>',
+                    unsafe_allow_html=True
+                )
             else:
                 st.warning("Trailer not available")
 
@@ -239,6 +254,7 @@ elif st.session_state.view == "details":
 
         # =============================
         # RECOMMENDATIONS
+        # FIX 4: use tmdb_id param (not query) — matches backend signature
         # =============================
         st.subheader("🎯 Recommendations")
 
