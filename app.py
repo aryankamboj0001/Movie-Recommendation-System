@@ -4,7 +4,7 @@ import streamlit as st
 # =============================
 # CONFIG
 # =============================
-API_BASE = "https://movie-rec-466x.onrender.com"
+API_BASE = "http://127.0.0.1:8000"
 TMDB_IMG = "https://image.tmdb.org/t/p/w500"
 
 st.set_page_config(page_title="Movie Recommender", page_icon="🎬", layout="wide")
@@ -193,7 +193,7 @@ if st.session_state.view == "home":
             poster_grid(home, grid_cols)
 
 # =============================
-# DETAILS PAGE - FIXED VERSION
+# DETAILS PAGE - FINAL FIXED
 # =============================
 elif st.session_state.view == "details":
     tmdb_id = st.session_state.selected_tmdb_id
@@ -203,23 +203,42 @@ elif st.session_state.view == "details":
         st.rerun()
 
     with st.spinner("Loading movie details..."):
-        movie = api_get_json(
-            f"/movie/id/{tmdb_id}"
-        )
+        movie = api_get_json(f"/movie/id/{tmdb_id}")
+
+    # 🔥 DEBUG (optional - remove later)
+    # st.write(movie)
 
     if movie:
         st.header(movie.get("title"))
 
-        poster = movie.get("poster_url")
+        col1, col2 = st.columns([1, 2])
 
-        if poster:
-            # ✅ FIXED: Removed deprecated use_column_width
-            st.image(poster, width=400)
+        with col1:
+            poster = movie.get("poster_url")
+            if poster:
+                st.image(poster, width=300)
 
-        st.write(movie.get("overview"))
+        with col2:
+            st.subheader("📖 Overview")
+            st.write(movie.get("overview"))
+
+            st.markdown("---")
+
+            # 🎬 TRAILER SECTION (FINAL FIX)
+            trailer_url = movie.get("trailer_url")
+
+            st.subheader("🎬 Trailer")
+
+            if trailer_url:
+                st.video(trailer_url)   # ✅ ALWAYS SHOW VIDEO
+            else:
+                st.warning("Trailer not available")
 
         st.divider()
 
+        # =============================
+        # RECOMMENDATIONS
+        # =============================
         st.subheader("🎯 Recommendations")
 
         rec = api_get_json(

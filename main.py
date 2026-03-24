@@ -16,9 +16,10 @@ from dotenv import load_dotenv
 # =========================
 load_dotenv()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
-TMDB_BASE = "https://api.themoviedb.org/3"
-TMDB_IMG_500 = "https://image.tmdb.org/t/p/w500"
+TMDB_BASE = "http://api.themoviedb.org/3"
+TMDB_IMG_500 = "http://image.tmdb.org/t/p/w500"
 
 if not TMDB_API_KEY:
     # Don't crash import-time in production if you prefer; but for you better fail early:
@@ -76,6 +77,7 @@ class TMDBMovieDetails(BaseModel):
     poster_url: Optional[str] = None
     backdrop_url: Optional[str] = None
     genres: List[dict] = []
+    trailer_url: Optional[str] = None   # ✅ ADD THIS
 
 
 class TFIDFRecItem(BaseModel):
@@ -103,31 +105,39 @@ def make_img_url(path: Optional[str]) -> Optional[str]:
         return None
     return f"{TMDB_IMG_500}{path}"
 
-
 async def tmdb_get(path: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Safe TMDB GET:
-    - Network errors -> 502
-    - TMDB API errors -> 502 with detail
-    """
     q = dict(params)
     q["api_key"] = TMDB_API_KEY
 
+    import requests
+    import urllib3
+
+    # disable SSL warnings
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.get(f"{TMDB_BASE}{path}", params=q)
-    except httpx.RequestError as e:
+        r = requests.get(
+            f"{TMDB_BASE}{path}",
+            params=q,
+            timeout=20,
+            verify=False   # 🔥 FIX FOR YOUR ERROR
+        )
+
+        if r.status_code != 200:
+            raise HTTPException(
+                status_code=502,
+                detail=f"TMDB error {r.status_code}: {r.text}"
+            )
+
+        return r.json()
+
+    except Exception as e:
         raise HTTPException(
             status_code=502,
-            detail=f"TMDB request error: {type(e).__name__} | {repr(e)}",
+            detail=f"TMDB request failed: {str(e)}"
         )
 
-    if r.status_code != 200:
-        raise HTTPException(
-            status_code=502, detail=f"TMDB error {r.status_code}: {r.text}"
-        )
 
-    return r.json()
 
 
 async def tmdb_cards_from_results(
@@ -149,6 +159,10 @@ async def tmdb_cards_from_results(
 
 async def tmdb_movie_details(movie_id: int) -> TMDBMovieDetails:
     data = await tmdb_get(f"/movie/{movie_id}", {"language": "en-US"})
+
+    # 🔥 get trailer
+    trailer_url = await get_youtube_trailer(data.get("title", ""))
+
     return TMDBMovieDetails(
         tmdb_id=int(data["id"]),
         title=data.get("title") or "",
@@ -157,6 +171,7 @@ async def tmdb_movie_details(movie_id: int) -> TMDBMovieDetails:
         poster_url=make_img_url(data.get("poster_path")),
         backdrop_url=make_img_url(data.get("backdrop_path")),
         genres=data.get("genres", []) or [],
+        trailer_url=trailer_url   # ✅ added
     )
 
 
@@ -180,6 +195,38 @@ async def tmdb_search_first(query: str) -> Optional[dict]:
     data = await tmdb_search_movies(query=query, page=1)
     results = data.get("results", [])
     return results[0] if results else None
+
+async def get_youtube_trailer(title: str) -> Optional[str]:
+    import requests
+
+    if not YOUTUBE_API_KEY:
+        print("❌ YouTube API key missing")
+        return None
+
+    url = "https://www.googleapis.com/youtube/v3/search"
+
+    params = {
+        "part": "snippet",
+        "q": f"{title} official trailer",   # 🔥 improved query
+        "key": YOUTUBE_API_KEY,
+        "maxResults": 1,
+        "type": "video"
+    }
+
+    try:
+        r = requests.get(url, params=params, timeout=10)
+        data = r.json()
+
+        print("YouTube API response:", data)  # 🔥 debug
+
+        if "items" in data and len(data["items"]) > 0:
+            video_id = data["items"][0]["id"]["videoId"]
+            return f"https://www.youtube.com/embed/{video_id}"
+
+    except Exception as e:
+        print("❌ YouTube Error:", e)
+
+    return None
 
 
 # =========================
