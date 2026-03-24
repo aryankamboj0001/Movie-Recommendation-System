@@ -327,32 +327,44 @@ async def attach_tmdb_card_by_title(title: str) -> Optional[TMDBMovieCard]:
 # =========================
 # STARTUP: LOAD PICKLES
 # =========================
+# Add this import at top with others
+import traceback
+
+# Replace entire startup function:
 @app.on_event("startup")
 def load_pickles():
     global df, indices_obj, tfidf_matrix, tfidf_obj, TITLE_TO_IDX
+    
+    try:
+        # Load df
+        with open(DF_PATH, "rb") as f:
+            df = pickle.load(f)
+        
+        # Load indices
+        with open(INDICES_PATH, "rb") as f:
+            indices_obj = pickle.load(f)
+        
+        # Load TF-IDF matrix
+        with open(TFIDF_MATRIX_PATH, "rb") as f:
+            tfidf_matrix = pickle.load(f)
+        
+        # Load tfidf vectorizer
+        with open(TFIDF_PATH, "rb") as f:
+            tfidf_obj = pickle.load(f)
+        
+        # Build map
+        TITLE_TO_IDX = build_title_to_idx_map(indices_obj)
+        
+        print(f"✅ Loaded {len(df)} movies, TF-IDF ready")
+        
+    except FileNotFoundError as e:
+        print(f"⚠️ Pickle missing: {e}")
+        print("Endpoints /home, /tmdb/search, /movie/id/* still work (TMDB only)")
+        # Don't crash server
+    except Exception as e:
+        print(f"❌ Startup error: {traceback.format_exc()}")
+        # Graceful fail - server runs
 
-    # Load df
-    with open(DF_PATH, "rb") as f:
-        df = pickle.load(f)
-
-    # Load indices
-    with open(INDICES_PATH, "rb") as f:
-        indices_obj = pickle.load(f)
-
-    # Load TF-IDF matrix (usually scipy sparse)
-    with open(TFIDF_MATRIX_PATH, "rb") as f:
-        tfidf_matrix = pickle.load(f)
-
-    # Load tfidf vectorizer (optional, not used directly here)
-    with open(TFIDF_PATH, "rb") as f:
-        tfidf_obj = pickle.load(f)
-
-    # Build normalized map
-    TITLE_TO_IDX = build_title_to_idx_map(indices_obj)
-
-    # sanity
-    if df is None or "title" not in df.columns:
-        raise RuntimeError("df.pkl must contain a DataFrame with a 'title' column")
 
 
 # =========================
