@@ -6,10 +6,10 @@ import requests
 movies = pickle.load(open("movies.pkl", "rb"))
 similarity = pickle.load(open("similarity.pkl", "rb"))
 
-# TMDB API
+# TMDB API KEY
 API_KEY = "your_tmdb_api_key"
 
-# Recommendation function
+# Recommend function
 def recommend(movie):
     index = movies[movies['title'] == movie].index[0]
     distances = similarity[index]
