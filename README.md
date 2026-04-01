@@ -1,6 +1,6 @@
 # 🎬 Movie Recommendation System
 
-A full-stack Movie Recommendation System that uses **Natural Language Processing (NLP)** and **Machine Learning** to recommend similar movies.  
+A full-stack Movie Recommendation System that uses **NLP and Machine Learning** to recommend similar movies.  
 It integrates **IMDb API** for movie details and **YouTube API** for trailers.
 
 ---
@@ -15,39 +15,40 @@ It integrates **IMDb API** for movie details and **YouTube API** for trailers.
 - Content-based recommendation using **TF-IDF + cosine similarity**
 - Movie details using **IMDb API**
 - Trailer playback using **YouTube API**
-- FastAPI backend for handling ML logic
-- Streamlit frontend for interactive UI
+- FastAPI backend for API handling
+- Streamlit frontend for UI
 
 ---
 
 ## 🛠️ Tech Stack
 
 **Backend**
-- FastAPI
-- Python
-- Scikit-learn
-- Pandas, NumPy
+- FastAPI  
+- Python  
+- Scikit-learn  
 
 **Frontend**
-- Streamlit
+- Streamlit  
 
-**APIs**
-- IMDb API
-- YouTube Data API
+**Libraries**
+- Pandas, NumPy  
 
 ---
 
 ## 🧠 How It Works
 
-1. Preprocess movie data (text cleaning)
-2. Convert text into vectors using TF-IDF
-3. Compute similarity using cosine similarity
-4. Recommend top similar movies
+1. Text preprocessing  
+2. TF-IDF vectorization  
+3. Cosine similarity calculation  
+4. Recommend similar movies  
 
 ---
 
 ## 📂 Project Structure
+
+
 Movie-Recommendation-System/
+│
 ├── app.py
 ├── main.py
 ├── movies_metadata.csv
@@ -58,6 +59,7 @@ Movie-Recommendation-System/
 ├── assets/
 ├── sc/
 └── README.md
+
 
 ---
 
@@ -76,7 +78,7 @@ uvicorn main:app --reload
 streamlit run app.py
 🔑 Environment Variables
 
-Create .env file:
+Create a .env file:
 
 IMDB_API_KEY=your_key
 YOUTUBE_API_KEY=your_key
@@ -84,7 +86,6 @@ YOUTUBE_API_KEY=your_key
 Add user authentication
 Save favorite movies
 Hybrid recommendation system
-
 👨‍💻 Author
 
 Aryan Kumar
