@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Animated Header Banner -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=🎬%20CineMatch&fontSize=60&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=AI-Powered%20Movie%20Recommendation%20Engine&descAlignY=60&descSize=18" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=🎬%20Movie%20Recommendation%20System&fontSize=45&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=AI-Powered%20Movie%20Recommendation%20Engine&descAlignY=60&descSize=18" width="100%"/>
 
 <br/>
 
@@ -21,9 +21,9 @@
 
 ---
 
-## ✨ What is CineMatch?
+## ✨ What is this?
 
-**CineMatch** is a full-stack, AI-powered Movie Recommendation System that understands the *language* of cinema. Type in a movie you love — and the engine will instantly surface the most similar titles using **TF-IDF vectorization** and **cosine similarity**, enriched with live data from IMDb and YouTube.
+This is a full-stack, AI-powered **Movie Recommendation System** that understands the *language* of cinema. Type in a movie you love — and the engine will instantly surface the most similar titles using **TF-IDF vectorization** and **cosine similarity**, enriched with live data from IMDb and YouTube.
 
 <br/>
 
@@ -80,7 +80,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        CineMatch                            │
+│                 Movie Recommendation System                  │
 │                                                             │
 │   ┌──────────────┐      ┌──────────────┐                   │
 │   │  🌐 Frontend  │ ───► │  ⚡ Backend   │                   │
