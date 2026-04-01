@@ -48,7 +48,6 @@ It integrates **IMDb API** for movie details and **YouTube API** for trailers.
 
 ## 📂 Project Structure
 Movie-Recommendation-System/
-│
 ├── app.py
 ├── main.py
 ├── movies_metadata.csv
